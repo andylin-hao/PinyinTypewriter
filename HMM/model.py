@@ -90,7 +90,10 @@ class Model:
                 sentence_prob = new_sentence_prob
             else:
                 break
-        return sorted(sentence_prob.items(), key=lambda item: item[1], reverse=True)[0][0]
+        sorted_prob = sorted(sentence_prob.items(), key=lambda item: item[1], reverse=True)
+        if len(sorted_prob) == 0:
+            return ""
+        return sorted_prob[0][0]
 
     @classmethod
     def train(cls, path='./Data/data.data', ):

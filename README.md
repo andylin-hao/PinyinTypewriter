@@ -8,6 +8,7 @@
 * --output_file\\-out OUTPUT_FILE_NAME 用于指定输出文件（一行一句拼音翻译）
 * --train\\-t 是否进行训练
 * --interact\\-i 是否进入交互模式，进入后可手动在控制台输入一行拼音并得到反馈，通过`Ctrl+C`退出
+* --accuracy\\-a 进行准确率测试
 
 ## 算法基本思路与实现
 

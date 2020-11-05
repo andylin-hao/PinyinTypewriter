@@ -65,6 +65,8 @@ class HMModel:
                     result[sentence + '/' + successive] = prob + s_prob
         if len(result) == 0:
             return {None: 0}
+        result = sorted(result.items(), key=lambda item: item[1], reverse=True)
+        result = {result[0][0]: result[0][1]}
         return result
 
     @classmethod
@@ -296,7 +298,7 @@ Table for initial parameter
 
 
 class Initial(HMModel.base):
-    __tablename__ = 'INITIAL'
+    __tablename__ = 'INIT'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     character = Column(String(20), nullable=False, index=True)

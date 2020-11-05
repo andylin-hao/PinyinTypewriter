@@ -288,7 +288,7 @@ Table for initial parameter
 
 
 class Initial(HMModel.base):
-    __tablename__ = 'INIT'
+    __tablename__ = 'INITIAL'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     character = Column(String(20), nullable=False, index=True)

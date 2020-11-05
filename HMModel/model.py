@@ -32,7 +32,15 @@ class HMModel:
                                      tables=[Transition.__table__, Initial.__table__, Emission.__table__])
 
     @classmethod
-    def translate_v2(cls, input, prev=''):
+    def __translate(cls, input, prev=''):
+        """
+        The actual function of translation, which works in a recursion manner
+        Args:
+            input(list): the input pinyin, split into a list
+            prev(str): the previous character or word
+        Returns:
+            result(dict): dictionary of {sentences: probabilities}
+        """
         if len(input) == 0:
             return {"": 0}
 
@@ -48,9 +56,9 @@ class HMModel:
                 else:
                     sen_prob = {sen_prob[0]: sen_prob[1]}
             for sentence, prob in sen_prob.items():
-                successive_prob = cls.translate_v2(input[1:], sentence)
+                successive_prob = cls.__translate(input[1:], sentence)
                 if successive_prob.get(None, None) is not None:
-                    successive_prob = cls.translate_v2(input[1:])
+                    successive_prob = cls.__translate(input[1:])
                 for successive, s_prob in successive_prob.items():
                     if successive is None:
                         continue
@@ -71,7 +79,7 @@ class HMModel:
         input = input.split()
         if len(input) == 0:
             return ""
-        result = cls.translate_v2(input)
+        result = cls.__translate(input)
         prob = sorted(result.items(), key=lambda item: item[1], reverse=True)
         if len(prob) == 0:
             return ""

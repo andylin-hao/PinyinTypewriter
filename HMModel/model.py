@@ -11,6 +11,7 @@ from eprogress import LineProgress
 import numpy as np
 import os
 import jieba
+import time
 
 """
 HMM Model Class
@@ -24,6 +25,7 @@ class HMModel:
     Session = sessionmaker(bind=engine)
     session = Session()
     MAX_WORD_LEN = 5
+    MAX_CANDIDATES = 3
 
     @classmethod
     def init(cls):
@@ -45,8 +47,11 @@ class HMModel:
             return {"": 0}
 
         result = dict()
+        new_inputs = []
+        sen_probs = []
         for i in range(min(cls.MAX_WORD_LEN, len(input)) - 1, -1, -1):
             new_input = [' '.join(input[:i + 1])] + input[i + 1:]
+            new_inputs.append(new_input)
             if prev == '':
                 sen_prob = dict(cls.query_emit_init(new_input[0]))
             else:
@@ -56,9 +61,19 @@ class HMModel:
                 else:
                     sen_prob = {sen_prob[0]: sen_prob[1]}
             is_prune = False
+            sen_probs.append(sen_prob)
             for sentence, prob in sen_prob.items():
                 if (prob == 0 and sen_prob is not None) or len(sen_prob) == 1:
                     is_prune = True
+            if is_prune:
+                break
+
+        for idx in range(len(new_inputs)):
+            sen_prob = sen_probs[idx]
+            new_input = new_inputs[idx]
+            if len(sen_prob) > cls.MAX_CANDIDATES:
+                sen_prob = {key: value for key, value in list(sen_prob.items())[:cls.MAX_CANDIDATES]}
+            for sentence, prob in sen_prob.items():
                 successive_prob = cls.__translate(new_input[1:], sentence)
                 if successive_prob.get(None, None) is not None:
                     successive_prob = cls.__translate(new_input[1:])
@@ -66,8 +81,7 @@ class HMModel:
                     if successive is None:
                         continue
                     result[sentence + '/' + successive] = prob + s_prob
-            if is_prune:
-                break
+
         if len(result) == 0:
             return {None: 0}
         result = sorted(result.items(), key=lambda item: item[1], reverse=True)
@@ -122,6 +136,7 @@ class HMModel:
                 print("The size is too large")
                 raise BaseException
             accuracy_count = list()
+            start = time.time()
             for i in range(rounds):
                 progress = LineProgress(title='Round ' + str(i + 1))
                 positives = np.random.randint(0, len(lines), size)
@@ -137,6 +152,7 @@ class HMModel:
                             count += 1
                     accurate_num += count / len(word)
                 accuracy_count.append(accurate_num)
+            print("Avg. time consumption per round: {} s".format((time.time() - start) / rounds))
             print("The test accuracy is: {:.2f}%".format(sum(accuracy_count) / (size * rounds) * 100))
 
     @classmethod

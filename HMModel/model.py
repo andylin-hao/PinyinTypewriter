@@ -45,24 +45,29 @@ class HMModel:
             return {"": 0}
 
         result = dict()
-        for i in range(min(cls.MAX_WORD_LEN, len(input))):
-            input = [' '.join(input[:i + 1])] + input[i + 1:]
+        for i in range(min(cls.MAX_WORD_LEN, len(input)) - 1, -1, -1):
+            new_input = [' '.join(input[:i + 1])] + input[i + 1:]
             if prev == '':
-                sen_prob = dict(cls.query_emit_init(input[0]))
+                sen_prob = dict(cls.query_emit_init(new_input[0]))
             else:
-                sen_prob = cls.query_trans_emit(prev.split('/')[-1], input[0])
+                sen_prob = cls.query_trans_emit(prev.split('/')[-1], new_input[0])
                 if sen_prob is None:
                     return {None: 0}
                 else:
                     sen_prob = {sen_prob[0]: sen_prob[1]}
+            is_prune = False
             for sentence, prob in sen_prob.items():
-                successive_prob = cls.__translate(input[1:], sentence)
+                if (prob == 0 and sen_prob is not None) or len(sen_prob) == 1:
+                    is_prune = True
+                successive_prob = cls.__translate(new_input[1:], sentence)
                 if successive_prob.get(None, None) is not None:
-                    successive_prob = cls.__translate(input[1:])
+                    successive_prob = cls.__translate(new_input[1:])
                 for successive, s_prob in successive_prob.items():
                     if successive is None:
                         continue
                     result[sentence + '/' + successive] = prob + s_prob
+            if is_prune:
+                break
         if len(result) == 0:
             return {None: 0}
         result = sorted(result.items(), key=lambda item: item[1], reverse=True)
@@ -103,7 +108,7 @@ class HMModel:
         cls.__train_transition(data_lines)
 
     @classmethod
-    def accuracy(cls, path='./Data/dict.txt', size=1000, rounds=5):
+    def accuracy(cls, path='./Data/test.txt', size=1000, rounds=5):
         """
         Test the model accuracy
         Args:
@@ -203,6 +208,8 @@ class HMModel:
             if not is_chinese(line[0]):
                 continue
             char_prob[line[0]] = char_prob.get(line[0], 0) + 1
+            if data_type == "W":
+                char_prob[line] = char_prob.get(line, 0) + 1
 
         print('\nInserting into database...')
         for character, prob in char_prob.items():
@@ -239,10 +246,9 @@ class HMModel:
                 pinyin_list = pinyin(line, style=NORMAL)
             for character, pinyin_s in zip(line, pinyin_list):
                 pinyin_prob = char_pinyin_prob.get(character, dict())
-                if data_type == 'S':
-                    pin_yin = ' '.join([py[0] for py in pinyin_s])
-                    pinyin_prob[pin_yin] = pinyin_prob.get(pin_yin, 0) + 1
-                else:
+                pin_yin = ' '.join([py[0] for py in pinyin_s])
+                pinyin_prob[pin_yin] = pinyin_prob.get(pin_yin, 0) + 1
+                if data_type == 'W':
                     for pin_yin in pinyin_s:
                         pinyin_prob[pin_yin] = pinyin_prob.get(pin_yin, 0) + 1
                 char_pinyin_prob[character] = pinyin_prob
